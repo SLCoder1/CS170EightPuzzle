@@ -70,23 +70,48 @@ class Puzzle:
                 successors.append(tuple(newState))
         return successors
 
-    def uniformCostSearch(self, start):
-        # use a priority queue where priority is cost so far
-        frontier = []
-        heapq.heappush(frontier, Node(state=start, g=0, h=0))
-        costs = {start: 0}
+    
+    #make sure that the puzzle is solvable
+    def isSolvable(self, state):
+        arr = [x for x in state if x != 0]  # <-- CRITICAL
+        inv = 0
+        for i in range(len(arr)):
+            for j in range(i+1, len(arr)):
+                if arr[i] > arr[j]:
+                    inv += 1
+        return inv % 2 == 0
 
+    #create a search that can be used for A* algorithms
+    def search(self, start, heuristic):
+        frontier = []
+        startHeuristic = heuristic(start)
+        heapq.heappush(frontier, Node(state=start, g=0, h=startHeuristic))
+        costs = {start: 0}
+        successors = 0
+        stack = 1
+        #while there are still nodes to explore
         while frontier:
+            stack = max(stack, len(frontier))
             node = heapq.heappop(frontier)
             if node.g > costs.get(node.state, float("inf")):
                 continue
+            successors += 1
 
-            if self.goal == node.state:
-                return node
-
+            if node.state == self.goal:
+                return node, successors, stack
+            #generate successors
             for successor in self.generateSuccessors(node.state):
-                g_cost = node.g + 1
-                if g_cost < costs.get(successor, float("inf")):
-                    costs[successor] = g_cost
-                    heapq.heappush(frontier, Node(state=successor, parent=node, g=g_cost, h=0))
-        return None
+                cost = node.g + 1
+                if cost < costs.get(successor, float("inf")):
+                    costs[successor] = cost
+                    heapq.heappush(frontier, Node(state=successor, parent=node, g=cost, h=heuristic(successor)))
+        return None, successors, stack
+    
+    def uniformCostSearch(self, start):
+        return self.search(start, lambda s: 0)
+    
+    def aStarMisplaced(self, start):
+        return self.search(start, self.misplacedTiles)
+    
+    def aStarManhattan(self, start):
+        return self.search(start, self.manhattanDistance)

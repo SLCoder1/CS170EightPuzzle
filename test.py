@@ -1,146 +1,56 @@
 from main import Puzzle
-from main import Node
-import heapq
+import time
+
+
+def run(name, func, puzzle, start):
+    t0 = time.time()
+    goal, expanded, maxq = func(start)
+    t1 = time.time()
+
+    if goal is None:
+        print(name, "→ No solution")
+        return
+
+    print(name)
+    print("Depth:", goal.g)
+    print("Expanded:", expanded)
+    print("Max queue:", maxq)
+    print("Time:", round(t1 - t0, 4), "sec")
+    print()
+
 
 if __name__ == "__main__":
 
-    #test puzzles of size N
+    N = int(input("Enter puzzle size N: "))
 
-    for N in [2, 3, 4]:
-        print(f"\nTesting PUzzle with N = {N}")
-        p = Puzzle(N)
-        print("solved board:")
-        p.getBoard(p.goal)
+    print("Enter board row by row, use 0 for blank. A row should include spaces between each number, and press enter after each row")
 
-    #test nodes
-    print("\nTesting Nodes")
-    n1 = Node(state=(1, 2, 3, 4), g = 2, h = 3)
-    n2 = Node(state=(1, 2, 3, 4), g = 1, h = 1)
-    n3 = Node(state=(1, 2, 3, 4), g = 4, h = 0)
+    values = []
+    for _ in range(N):
+        values.extend(map(int, input().split()))
 
-    heap = []
-    heapq.heappush(heap, n1)
-    heapq.heappush(heap, n2)
-    heapq.heappush(heap, n3)
+    start = tuple(values)
 
-    print("Nodes are popped in order of lowest f to greatest f:")
-    while heap:
-        node = heapq.heappop(heap)
-        print("f = ", node.f)
+    p = Puzzle(N)
 
-    # test heuristic function on a non-trivial state
-    print("\n testing heuristic functions")
-    p = Puzzle(3)
-    test = (1, 2, 3, 4, 0, 6, 7, 8, 5)  # one tile displaced from goal
-    print("state for heuristics:")
-    p.getBoard(test)
-    print("misplaced: ", p.misplacedTiles(test))
-    print("manhattan: ", p.manhattanDistance(test))
+    if not p.isSolvable(start):
+        print("Unsolvable puzzle")
+        exit()
 
-    # test expand
-    print("\n testing creating successors function")
-    for child in p.generateSuccessors(test):
-        p.getBoard(child)
+    print("\nInitial state:")
+    p.getBoard(start)
 
-    print("is goal: ", p.reachGoal(p.goal))
+    print("Goal:")
+    p.getBoard(p.goal)
 
-    # testing uniform cost search
-    print("\n testing uniform cost search")
-    p = Puzzle(3)
+    print("\nRunning algorithms...\n")
 
-    # a simple one-move solvable configuration
-    solvable = (1, 2, 3, 4, 5, 6, 7, 0, 8)
-    print("solvable start state:")
-    p.getBoard(solvable)
-    result = p.uniformCostSearch(solvable)
-    if result is None:
-        print("ERROR: expected a solution but none was found")
-    else:
-        print("found path length", len(result.path()) - 1)
+    run("Uniform Cost", p.uniformCostSearch, p, start)
+    run("A* Misplaced", p.aStarMisplaced, p, start)
+    run("A* Manhattan", p.aStarManhattan, p, start)
 
-    # a known unsolvable configuration (parity mismatch)
-    unsolvable = (1, 2, 3, 4, 0, 6, 7, 8, 5)
-    print("unsolvable start state:")
-    p.getBoard(unsolvable)
-    result = p.uniformCostSearch(unsolvable)
-    if result is None:
-        print("correctly reports no solution")
-    else:
-        print("WARNING: found path for unsolvable state")
-        for s in result.path():
-            p.getBoard(s)
+    goal, _, _ = p.aStarManhattan(start)
 
-    # try several random solvable states to make sure solver works reliably
-    import random
-
-    def is_solvable(state, N=3):
-        inv = 0
-        arr = [x for x in state if x != 0]
-        for i in range(len(arr)):
-            for j in range(i+1, len(arr)):
-                if arr[i] > arr[j]:
-                    inv += 1
-        return inv % 2 == 0
-
-    solvable = (1, 2, 3, 4, 5, 6, 0, 7, 8)
-    print("solvable start state:")
-    p.getBoard(solvable)
-    result = p.uniformCostSearch(solvable)
-    if result is None:
-        print("ERROR: expected a solution but none was found")
-    else:
-        print("found path length", len(result.path()) - 1)
-
-    solvable = (1, 2, 3, 5, 0, 6, 4, 7, 8)
-    print("solvable start state:")
-    p.getBoard(solvable)
-    result = p.uniformCostSearch(solvable)
-    if result is None:
-        print("ERROR: expected a solution but none was found")
-    else:
-        print("found path length", len(result.path()) - 1)
-
-    solvable = (1, 3, 6, 5, 0, 2, 4, 7, 8)
-    print("solvable start state:")
-    p.getBoard(solvable)
-    result = p.uniformCostSearch(solvable)
-    if result is None:
-        print("ERROR: expected a solution but none was found")
-    else:
-        print("found path length", len(result.path()) - 1)
-
-    solvable = (1, 3, 6, 5, 0, 7, 4, 8, 2)
-    print("solvable start state:")
-    p.getBoard(solvable)
-    result = p.uniformCostSearch(solvable)
-    if result is None:
-        print("ERROR: expected a solution but none was found")
-    else:
-        print("found path length", len(result.path()) - 1)
-    
-    solvable = (1, 6, 7, 5, 0, 3, 4, 8, 2)
-    print("solvable start state:")
-    p.getBoard(solvable)
-    result = p.uniformCostSearch(solvable)
-    if result is None:
-        print("ERROR: expected a solution but none was found")
-    else:
-        print("found path length", len(result.path()) - 1)
-
-    solvable = (7, 1, 2, 4, 8, 5, 6, 3, 0)
-    print("solvable start state:")
-    p.getBoard(solvable)
-    result = p.uniformCostSearch(solvable)
-    if result is None:
-        print("ERROR: expected a solution but none was found")
-    else:
-        print("found path length", len(result.path()) - 1)
-
-    solvable = (0, 7, 2, 4, 6, 1, 3, 5, 8)
-    print("solvable start state:")
-    p.getBoard(solvable)
-    result = p.uniformCostSearch(solvable)
-    if result is None:
-        print("ERROR: expected a solution but none was found")
-    else:
-        print("found path length", len(result.path()) - 1)
+    print("Solution path:\n")
+    for s in goal.path():
+        p.getBoard(s)
